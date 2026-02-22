@@ -1,3 +1,4 @@
+import hashlib
 import sys
 import time
 from datetime import datetime
@@ -15,6 +16,7 @@ icon_path = '../data/arch.ico' if sys.platform.startswith('win') else '../data/a
 options = {
     'chunk_size': 4096,
     'file_paths': [],
+    'hash_md5': [],
     'suffix_file': '_sar_',
     'postfix_file': '.sar',
     'cur_index_path': None
@@ -75,22 +77,27 @@ def compress_event(window):
         options['cur_index_path'] = file_number - 1
         data_chunks = []
         chunk_len = 0
+        hash_md5 = hashlib.md5()
         for chunk in File.read_chunks(file_path, options['chunk_size']):
             data_chunks.append(chunk)
             chunk_len += len(chunk)
+            hash_md5.update(chunk)
+        options['hash_md5'].append(hash_md5.hexdigest())
         print_info(window, f'Файл №{file_number} {file_path}')
         print_info(window, f'Файл загружен. Блоков: {len(data_chunks)}. Размер данных: {human_size(chunk_len)}.')
         print_info(window, f'Старт архивации файла в {time.strftime("%H:%M:%S")} ...')
         start_time = time.perf_counter()
-        is_compress = Core.compress_data(data_chunks, options, file_path)
-        end_time = time.perf_counter() - start_time
-        print_info(window, f'... Завершено в {time.strftime("%H:%M:%S")}.')
-        if is_compress:
+        if Core.compress_data(data_chunks, options):
+            end_time = time.perf_counter() - start_time
+            print_info(window, f'... Завершено в {time.strftime("%H:%M:%S")}.')
             print_info(window, f'Файл упакован за {format_time(end_time)}\n')
         else:
             print_info(window, 'Ошибка архивации!\n')
             sg.popup_error('Ошибка архивации!', icon=icon_path)
     print_info(window, f'Архивация завершена.\n')
+    options['file_paths'] = []
+    options['hash_md5'] = []
+    options['cur_index_path'] = None
 
 
 def decompress_event(window):
@@ -103,18 +110,22 @@ def decompress_event(window):
         return
     options['file_paths'] = temp_paths
     for file_number, file_path in enumerate(options['file_paths'], 1):
+        options['cur_index_path'] = file_number - 1
         print_info(window, f'Файл №{file_number} {file_path}')
         print_info(window, f'Старт распаковки файла в {time.strftime("%H:%M:%S")} ...')
         start_time = time.perf_counter()
-        is_decompress = Core.decompress_data(options, file_path)
-        end_time = time.perf_counter() - start_time
-        print_info(window, f'... Завершено в {time.strftime("%H:%M:%S")}.')
-        if is_decompress:
+        if Core.decompress_data(options):
+            end_time = time.perf_counter() - start_time
+            print_info(window, '✅ Файл успешно проверен: контрольные суммы совпадают.')
+            print_info(window, f'... Завершено в {time.strftime("%H:%M:%S")}.')
             print_info(window, f'Файл распакован за {format_time(end_time)}\n')
         else:
             print_info(window, 'Ошибка распаковки!\n')
             sg.popup_error('Ошибка распаковки!', icon=icon_path)
     print_info(window, f'Распаковка завершена.\n')
+    options['file_paths'] = []
+    options['hash_md5'] = []
+    options['cur_index_path'] = None
 
 
 def window_info_event(main_window):

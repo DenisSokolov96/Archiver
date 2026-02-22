@@ -11,13 +11,16 @@ def read_chunks(file_path, chunk_size):
 def read_compress_file(file_path):
     """Читает запакованный файл"""
     with open(file_path, 'rb') as f:
+        hash_len_data = f.read(4)
+        if not hash_len_data:
+            return None, None, None
+        hash_len = int.from_bytes(hash_len_data, 'big')
+        hash_md5 = f.read(hash_len).decode('utf-8')
         len_bytes = f.read(4)
-        if not len_bytes:
-            return None, None
         codes_table_len = int.from_bytes(len_bytes, 'big')
         codes_table_serialize = f.read(codes_table_len)
         compressed_data = f.read()
-    return codes_table_serialize, compressed_data
+    return hash_md5, codes_table_serialize, compressed_data
 
 
 def write_bytes(file_name: str, data: bytes):
