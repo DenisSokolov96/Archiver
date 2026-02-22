@@ -102,7 +102,6 @@ def create_compressed_bytes(chunks_list: bytearray, codes_table: dict) -> bytear
 
 def serialize_codes(codes_table: dict) -> bytes:
     """Сериализация таблицы частот: Ключи — числа (байты), значения — строки '0101'"""
-    # code = data[pos : pos + code_len].decode('ascii')
     result = bytearray()
     for byte_val, code in codes_table.items():
         result.append(byte_val)

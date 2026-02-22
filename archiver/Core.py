@@ -24,6 +24,7 @@ def decompress_data(options):
     codes_table = deserialize_codes(codes_table_serialize)
     chunks_list = decompressed_chunks_list(compressed_data, codes_table, options['chunk_size'])
     new_path_to_file = path_to_file.removesuffix(options['postfix_file'])
-    new_path_to_file = new_path_to_file[:-4] + options['suffix_file'] + new_path_to_file[-4:]
+    old_postfix = '.' + new_path_to_file.split('.')[-1]
+    new_path_to_file = new_path_to_file[:-len(old_postfix)] + options['suffix_file'] + new_path_to_file[-len(old_postfix):]
     File.write_chunks(new_path_to_file, chunks_list)
     return True

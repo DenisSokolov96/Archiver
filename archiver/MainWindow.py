@@ -1,3 +1,4 @@
+import sys
 import time
 from datetime import datetime
 
@@ -10,7 +11,7 @@ sizeX = 600
 sizeY = 400
 
 compress_result = {}
-icon_path = '../data/arch.png'
+icon_path = '../data/arch.ico' if sys.platform.startswith('win') else '../data/arch.png'
 options = {
     'chunk_size': 4096,
     'file_path': "",
