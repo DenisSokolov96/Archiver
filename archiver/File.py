@@ -1,10 +1,9 @@
 import hashlib
 
 
-def read_chunks(options):
+def read_chunks(file_path, chunk_size):
     """Читает исходный файл фрагментами заданной длины, по умолчанию = 4096"""
-    chunk_size = options['chunk_size']
-    with open(options['file_path'], 'rb') as f:
+    with open(file_path, 'rb') as f:
         while chunk := f.read(chunk_size):
             yield chunk
 

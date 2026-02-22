@@ -14,9 +14,10 @@ compress_result = {}
 icon_path = '../data/arch.ico' if sys.platform.startswith('win') else '../data/arch.png'
 options = {
     'chunk_size': 4096,
-    'file_path': "",
+    'file_paths': [],
     'suffix_file': '_sar_',
-    'postfix_file': '.sar'
+    'postfix_file': '.sar',
+    'cur_index_path': None
 }
 
 
@@ -62,54 +63,58 @@ def menu_event(event, main_window):
 
 
 def compress_event(window):
-    """Архивировать файл"""
-    print_info(window, 'Загрузка файла...')
-    temp_path = sg.popup_get_file('Выберите файл для загрузки', no_window=True, icon=icon_path)
-    if not temp_path:
-        print_info(window, 'Файл не загружен.')
-        sg.popup_ok('Файл не загружен', icon=icon_path)
+    """Архивировать файлы"""
+    print_info(window, 'Загрузка файлов...')
+    temp_paths = sg.popup_get_file('Выберите файлы для загрузки', no_window=True, icon=icon_path, multiple_files=True)
+    if not temp_paths:
+        print_info(window, 'Файлы не загружены.')
+        sg.popup_ok('Файлы не загружены', icon=icon_path)
         return
-    options['file_path'] = temp_path
-    data_chunks = []
-    chunk_len = 0
-    for chunk in File.read_chunks(options):
-        data_chunks.append(chunk)
-        chunk_len += len(chunk)
-    print_info(window, f'Файл загружен. Блоков: {len(data_chunks)}. Размер данных: {human_size(chunk_len)}.\n')
-    print_info(window, f'Старт архивации файла в {time.strftime("%H:%M:%S")} ...')
-    start_time = time.perf_counter()
-    is_compress = Core.compress_data(data_chunks, options)
-    end_time = time.perf_counter() - start_time
-    print_info(window, f'... Завершено в {time.strftime("%H:%M:%S")}.')
-    if is_compress:
-        data_chunks.clear()
-        print_info(window, f'Файл упакован за {format_time(end_time)}')
-        sg.popup_ok('Файл успешно запакован!', icon=icon_path)
-    else:
-        print_info(window, 'Ошибка архивации!')
-        sg.popup_error('Ошибка архивации!', icon=icon_path)
+    options['file_paths'] = temp_paths
+    for file_number, file_path in enumerate(options['file_paths'], 1):
+        options['cur_index_path'] = file_number - 1
+        data_chunks = []
+        chunk_len = 0
+        for chunk in File.read_chunks(file_path, options['chunk_size']):
+            data_chunks.append(chunk)
+            chunk_len += len(chunk)
+        print_info(window, f'Файл №{file_number} {file_path}')
+        print_info(window, f'Файл загружен. Блоков: {len(data_chunks)}. Размер данных: {human_size(chunk_len)}.')
+        print_info(window, f'Старт архивации файла в {time.strftime("%H:%M:%S")} ...')
+        start_time = time.perf_counter()
+        is_compress = Core.compress_data(data_chunks, options, file_path)
+        end_time = time.perf_counter() - start_time
+        print_info(window, f'... Завершено в {time.strftime("%H:%M:%S")}.')
+        if is_compress:
+            print_info(window, f'Файл упакован за {format_time(end_time)}\n')
+        else:
+            print_info(window, 'Ошибка архивации!\n')
+            sg.popup_error('Ошибка архивации!', icon=icon_path)
+    print_info(window, f'Архивация завершена.\n')
 
 
 def decompress_event(window):
-    """Распаковать файл"""
-    print_info(window, 'Загрузка файла для распаковки...')
-    temp_path = sg.popup_get_file('Выберите файл для распаковки', no_window=True, icon=icon_path)
-    if temp_path:
-        options['file_path'] = temp_path
+    """Распаковать файлы"""
+    print_info(window, 'Загрузка файлов для распаковки...')
+    temp_paths = sg.popup_get_file('Выберите файлы для распаковки', no_window=True, icon=icon_path, multiple_files=True)
+    if not temp_paths:
+        print_info(window, 'Файлы не загружены.')
+        sg.popup_ok('Файлы не загружены', icon=icon_path)
+        return
+    options['file_paths'] = temp_paths
+    for file_number, file_path in enumerate(options['file_paths'], 1):
+        print_info(window, f'Файл №{file_number} {file_path}')
         print_info(window, f'Старт распаковки файла в {time.strftime("%H:%M:%S")} ...')
         start_time = time.perf_counter()
-        is_decompress = Core.decompress_data(options)
+        is_decompress = Core.decompress_data(options, file_path)
         end_time = time.perf_counter() - start_time
         print_info(window, f'... Завершено в {time.strftime("%H:%M:%S")}.')
         if is_decompress:
-            print_info(window, f'Файл распакован за {format_time(end_time)}')
-            sg.popup_ok('Файл успешно распакован!', icon=icon_path)
+            print_info(window, f'Файл распакован за {format_time(end_time)}\n')
         else:
-            print_info(window, 'Ошибка распаковки!')
+            print_info(window, 'Ошибка распаковки!\n')
             sg.popup_error('Ошибка распаковки!', icon=icon_path)
-    else:
-        print_info(window, 'Файл не загружен.')
-        sg.popup_ok('Файл не загружен', icon=icon_path)
+    print_info(window, f'Распаковка завершена.\n')
 
 
 def window_info_event(main_window):
